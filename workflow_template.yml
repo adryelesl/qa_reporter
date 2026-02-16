@@ -1,0 +1,66 @@
+name: Daily QA and Jira Integration 🚀
+
+on:
+  workflow_dispatch:
+    inputs:
+      issue_key:
+        description: 'Jira Issue Key (e.g., TEST-123)'
+        required: false
+        default: ''
+  repository_dispatch:
+    types: [jira_trigger]
+  schedule:
+    - cron: '0 11 * * *'
+
+jobs:
+  run-tests:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Install Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        
+        # 📦 Install Library
+        # OPTION 1: From Private Git Repo (Recommended)
+        # pip install git+https://${{ secrets.GH_PAT }}@github.com/YOUR_ORG/qa-reporter.git
+        
+        # OPTION 2: From Local Source (If repo is cloned)
+        # pip install -e .
+
+        # Install project requirements
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        rfbrowser init
+
+    - name: Run Robot Tests 🤖
+      run: |
+        # Run tests and generate output.xml in results/ folder
+        robot -d results features/ || true 
+        # We allow failure (|| true) so the report step still runs
+
+    - name: Generate Report and Sync to Jira 📊
+      env:
+        SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
+        SMTP_PORT: ${{ secrets.SMTP_PORT }}
+        SMTP_USER: ${{ secrets.SMTP_USER }}
+        SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+        SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
+        RECIPIENT_EMAIL: ${{ secrets.RECIPIENT_EMAIL }}
+        
+        JIRA_DOMAIN: ${{ secrets.JIRA_DOMAIN }}
+        JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
+        JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+        # Dynamic Issue Key from Manual Input or Webhook
+        JIRA_ISSUE_KEY: ${{ github.event.inputs.issue_key || github.event.client_payload.issue_key || secrets.JIRA_ISSUE_KEY }}
+      run: |
+        echo "Updating Jira Issue: $JIRA_ISSUE_KEY"
+        # Run your consumer script
+        python run_report.py

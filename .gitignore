@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env
+
+# Robot Framework
+results/
+log.html
+report.html
+output.xml
+
+# IDE
+.vscode/
+.idea/
+*.egg-info/
