@@ -328,7 +328,7 @@ def sync_to_jira(jira_config, results_dir, output_xml_path='output.xml', chart_p
 
     result = ExecutionResult(full_output_xml)
     metrics = TestMetrics()
-    metrics.visit(result)
+    result.visit(metrics)
     
     # 🕵️ Synthetic Skip Logic: Use centralized method
     metrics.apply_synthetic_skips(requested_tags)

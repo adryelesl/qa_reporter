@@ -467,6 +467,7 @@ def run_report(results_dir, history_file='execution_history.json', report_dir='r
         print(f"Error: '{output_xml}' not found.")
         return
 
+    result = ExecutionResult(output_xml)
     metrics = TestMetrics()
     result.visit(metrics)
 
