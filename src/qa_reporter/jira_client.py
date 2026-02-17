@@ -330,25 +330,24 @@ def sync_to_jira(jira_config, results_dir, output_xml_path='output.xml', chart_p
         print("⚠️ Missing Jira Configuration. Skipping Jira Sync.")
         return
 
-    if not os.path.exists(full_output_xml):
-        print(f"❌ '{full_output_xml}' not found. Cannot sync.")
-        return
-
-    result = ExecutionResult(full_output_xml)
     metrics = TestMetrics()
-    result.visit(metrics)
+    executed_ids = []
+    start_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-    # Capture IDs that actually executed (needed for evidence upload)
-    executed_ids = [t['id'] for t in metrics.tests]
+    if os.path.exists(full_output_xml):
+        result = ExecutionResult(full_output_xml)
+        result.visit(metrics)
+        executed_ids = [t['id'] for t in metrics.tests]
+        try:
+            start_time_raw = result.suite.starttime
+            start_time = datetime.strptime(start_time_raw, '%Y%m%d %H:%M:%S.%f').strftime('%Y-%m-%d %H:%M:%S')
+        except:
+            pass
+    else:
+        print(f"⚠️ Warning: '{full_output_xml}' not found. Syncing skips only.")
     
     # 🕵️ Synthetic Skip Logic: Use centralized method
     metrics.apply_synthetic_skips(requested_tags)
-    
-    try:
-        start_time_raw = result.suite.starttime
-        start_time = datetime.strptime(start_time_raw, '%Y%m%d %H:%M:%S.%f').strftime('%Y-%m-%d %H:%M:%S')
-    except:
-        start_time = "Unknown"
 
     chart_id = None
     chart_url = None

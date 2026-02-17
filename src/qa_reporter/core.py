@@ -487,13 +487,13 @@ def run_report(results_dir, history_file='execution_history.json', report_dir='r
     history_path = os.path.join(results_dir, history_file)
     report_path = os.path.join(results_dir, report_dir) # report inside results usually
 
-    if not os.path.exists(output_xml):
-        print(f"Error: '{output_xml}' not found.")
-        return
 
-    result = ExecutionResult(output_xml)
     metrics = TestMetrics()
-    result.visit(metrics)
+    if os.path.exists(output_xml):
+        result = ExecutionResult(output_xml)
+        result.visit(metrics)
+    else:
+        print(f"⚠️ Warning: '{output_xml}' not found. Generating report for skips only.")
 
     # 🕵️ Synthetic Skip Logic: Apply before evidence and chart
     metrics.apply_synthetic_skips(requested_tags)

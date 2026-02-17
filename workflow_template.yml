@@ -66,41 +66,45 @@ jobs:
         INPUT_TAGS="${{ github.event.inputs.tags || github.event.client_payload.tags }}"
         
         # Use Python to generate the correct Robot -i flags
+        # Using 'AND' instead of '&' to avoid shell special character issues
         ROBOT_OPTIONS=$(python3 -c "
         import sys, re
-        tags = '$INPUT_TAGS'.split()
-        if not tags: print('-d results'); sys.exit(0)
-        
+        raw_tags = '$INPUT_TAGS'.strip()
+        if not raw_tags: 
+            print('-d results')
+            sys.exit(0)
+            
+        tags = raw_tags.split()
         categories = ['frontend', 'backend', 'api', 'ui', 'e2e']
         current_cat = None
         filters = []
-        cat_used = False
         
         for t in tags:
-            if t.lower() in categories:
-                if current_cat and not cat_used: filters.append(current_cat)
-                current_cat = t.lower()
-                cat_used = False
+            t_lower = t.lower()
+            if t_lower in categories:
+                current_cat = t_lower
             elif re.match(r'^T\d+$', t, re.I):
                 if current_cat:
-                    filters.append(f'{current_cat}&{t}')
-                    cat_used = True
+                    # Use AND keyword, and wrap in quotes for the shell
+                    filters.append(f'\\\"{current_cat} AND {t}\\\"')
                 else:
                     filters.append(t)
             else:
                 filters.append(t)
         
-        if current_cat and not cat_used: filters.append(current_cat)
-        
+        # If we found no specific IDs but have a category, run the whole category
+        if not filters and current_cat:
+            filters.append(current_cat)
+            
         opts = ['-d results']
         opts.extend([f'-i {f}' for f in filters])
         print(' '.join(opts))
         ")
-        
-        echo "🎯 Running with options: $ROBOT_OPTIONS"
-        
-        # xvfb-run creates a virtual display for browsers to run in CI
-        xvfb-run robot $ROBOT_OPTIONS features/ || true 
+
+        echo "🚀 Running Robot with: $ROBOT_OPTIONS"
+        # 📺 xvfb-run is required for browser tests in CI
+        # 🔗 eval is used to correctly handle the escaped quotes in ROBOT_OPTIONS
+        eval "xvfb-run python -m robot $ROBOT_OPTIONS features/" || true 
         # We allow failure (|| true) so the report step still runs
 
     - name: Generate Report and Sync to Jira 📊
