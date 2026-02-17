@@ -7,6 +7,10 @@ on:
         description: 'Jira Issue Key (e.g., TEST-123)'
         required: false
         default: ''
+      tags:
+        description: 'Robot Framework Tags to include (e.g., frontend T001)'
+        required: false
+        default: ''
   repository_dispatch:
     types: [jira_trigger]
   schedule:
@@ -42,8 +46,45 @@ jobs:
 
     - name: Run Robot Tests 🤖
       run: |
+        # 🏷️ Advanced Tag Parsing (AND Logic for Category + IDs)
+        INPUT_TAGS="${{ github.event.inputs.tags || github.event.client_payload.tags }}"
+        
+        # Use Python to generate the correct Robot -i flags
+        ROBOT_OPTIONS=$(python3 -c "
+        import sys, re
+        tags = '$INPUT_TAGS'.split()
+        if not tags: print('-d results'); sys.exit(0)
+        
+        categories = ['frontend', 'backend', 'api', 'ui', 'e2e']
+        current_cat = None
+        filters = []
+        cat_used = False
+        
+        for t in tags:
+            if t.lower() in categories:
+                if current_cat and not cat_used: filters.append(current_cat)
+                current_cat = t.lower()
+                cat_used = False
+            elif re.match(r'^T\d+$', t, re.I):
+                if current_cat:
+                    filters.append(f'{current_cat}&{t}')
+                    cat_used = True
+                else:
+                    filters.append(t)
+            else:
+                filters.append(t)
+        
+        if current_cat and not cat_used: filters.append(current_cat)
+        
+        opts = ['-d results']
+        opts.extend([f'-i {f}' for f in filters])
+        print(' '.join(opts))
+        ")
+        
+        echo "🎯 Running with options: $ROBOT_OPTIONS"
+        
         # xvfb-run creates a virtual display for browsers to run in CI
-        xvfb-run robot -d results features/ || true 
+        xvfb-run robot $ROBOT_OPTIONS features/ || true 
         # We allow failure (|| true) so the report step still runs
 
     - name: Generate Report and Sync to Jira 📊
