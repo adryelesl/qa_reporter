@@ -337,6 +337,9 @@ def sync_to_jira(jira_config, results_dir, output_xml_path='output.xml', chart_p
     result = ExecutionResult(full_output_xml)
     metrics = TestMetrics()
     result.visit(metrics)
+
+    # Capture IDs that actually executed (needed for evidence upload)
+    executed_ids = [t['id'] for t in metrics.tests]
     
     # 🕵️ Synthetic Skip Logic: Use centralized method
     metrics.apply_synthetic_skips(requested_tags)
