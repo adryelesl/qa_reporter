@@ -100,6 +100,7 @@ class TestMetrics(ResultVisitor):
                     'status': 'SKIP',
                     'message': f'Test was requested in tags but did not match filter (likely not {active_cat})',
                     'category': active_cat,
+                    'messages': [],
                     'elapsed_time': 0,
                     'duration': 0,
                     'end_time': datetime.now().strftime('%Y%m%d %H:%M:%S.%f'),

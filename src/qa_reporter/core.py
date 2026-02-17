@@ -88,7 +88,9 @@ def manage_evidence(tests, history, results_dir):
         is_first_run = test_id not in history
         
         should_keep = False
-        if is_first_run:
+        if status == 'SKIP':
+            should_keep = False
+        elif is_first_run:
             should_keep = True
         elif status == 'FAIL':
             should_keep = True
