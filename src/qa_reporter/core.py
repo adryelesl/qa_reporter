@@ -389,14 +389,25 @@ def generate_html_report_body(metrics, chart_path, history, report_dir):
             
             exec_date = format_date_display(test['end_time'])
             duration_str = format_duration(test['elapsed_time'])
-            bar_color = "#00a651" if test['status'] == 'PASS' else "#ff0000"
+            
+            # 🎨 Visual Logic
+            if test['status'] == 'PASS':
+                bar_color = "#00a651"
+                status_color = "green"
+            elif test['status'] == 'SKIP':
+                bar_color = "#888888"
+                status_color = "#888888"
+            else:
+                bar_color = "#ff0000"
+                status_color = "red"
+
             status_bar = f'<span style="display: inline-block; width: 60px; height: 12px; background-color: {bar_color}; border-radius: 999px; vertical-align: middle; margin-left: 10px;"></span>'
 
             table_html += f"""
                 <tr>
                     <td>{test['id']}</td>
                     <td>{test['name']}</td>
-                    <td class="{status_class}">{test['status']} {status_bar}</td>
+                    <td style="color: {status_color}; font-weight: bold;">{test['status']} {status_bar}</td>
                     <td>{details_html}</td>
                     <td>{exec_date}</td>
                     <td>{duration_str}</td>
