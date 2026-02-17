@@ -133,37 +133,65 @@ def build_adf_content(metrics, duration_str, start_time, chart_url=None):
         "content": [{"type": "text", "text": "📄 Detailed Results"}]
     })
     
-    table_rows = [
-        {
-            "type": "tableRow",
-            "content": [
-                 {"type": "tableHeader", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Test ID"}]}]},
-                 {"type": "tableHeader", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Name"}]}]},
-                 {"type": "tableHeader", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Status"}]}]},
-                 {"type": "tableHeader", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Duration"}]}]}
-            ]
-        }
-    ]
-    
+    # Group tests by category
+    grouped_tests = {}
     for test in metrics.tests:
-        status_color = "#006644" if test['status'] == 'PASS' else "#BF2600"
-        status_icon = "PASS" if test['status'] == 'PASS' else "FAIL"
+        cat = test.get('category', 'Uncategorized')
+        if cat not in grouped_tests:
+            grouped_tests[cat] = []
+        grouped_tests[cat].append(test)
+    
+    # Sort categories to keep Frontend/Backend order consistent if possible
+    sorted_categories = sorted(grouped_tests.keys())
+    
+    for cat in sorted_categories:
+        tests = grouped_tests[cat]
         
-        table_rows.append({
-            "type": "tableRow",
-            "content": [
-                 {"type": "tableCell", "content": [{"type": "paragraph", "content": [{"type": "text", "text": test['id']}]}]},
-                 {"type": "tableCell", "content": [{"type": "paragraph", "content": [{"type": "text", "text": test['name']}]}]},
-                 {"type": "tableCell", "content": [{"type": "paragraph", "content": [{"type": "text", "text": status_icon, "marks": [{"type": "textColor", "attrs": {"color": status_color}}, {"type": "strong"}]}]}]},
-                 {"type": "tableCell", "content": [{"type": "paragraph", "content": [{"type": "text", "text": format_duration(test['duration'])}]}]}
-            ]
+        # Add Category Heading
+        content.append({
+            "type": "heading",
+            "attrs": {"level": 5},
+            "content": [{"type": "text", "text": f"{cat.capitalize()} ({len(tests)})"}]
         })
+
+        table_rows = [
+            {
+                "type": "tableRow",
+                "content": [
+                     {"type": "tableHeader", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Test ID"}]}]},
+                     {"type": "tableHeader", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Name"}]}]},
+                     {"type": "tableHeader", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Status"}]}]},
+                     {"type": "tableHeader", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Details"}]}]},
+                     {"type": "tableHeader", "content": [{"type": "paragraph", "content": [{"type": "text", "text": "Duration"}]}]}
+                ]
+            }
+        ]
         
-    content.append({
-        "type": "table",
-        "attrs": {"isNumberColumnEnabled": False, "layout": "wide"},
-        "content": table_rows
-    })
+        for test in tests:
+            status_color = "#006644" if test['status'] == 'PASS' else "#BF2600"
+            status_icon = "PASS" if test['status'] == 'PASS' else "FAIL"
+            
+            # Details: Show error message if failed, checkmark if passed
+            detail_text = test.get('message', '') if test['status'] == 'FAIL' else "✓"
+            if not detail_text and test['status'] == 'FAIL':
+                 detail_text = "View logs for error details"
+
+            table_rows.append({
+                "type": "tableRow",
+                "content": [
+                     {"type": "tableCell", "content": [{"type": "paragraph", "content": [{"type": "text", "text": test['id']}]}]},
+                     {"type": "tableCell", "content": [{"type": "paragraph", "content": [{"type": "text", "text": test['name']}]}]},
+                     {"type": "tableCell", "content": [{"type": "paragraph", "content": [{"type": "text", "text": status_icon, "marks": [{"type": "textColor", "attrs": {"color": status_color}}, {"type": "strong"}]}]}]},
+                     {"type": "tableCell", "content": [{"type": "paragraph", "content": [{"type": "text", "text": detail_text}]}]},
+                     {"type": "tableCell", "content": [{"type": "paragraph", "content": [{"type": "text", "text": format_duration(test['duration'])}]}]}
+                ]
+            })
+            
+        content.append({
+            "type": "table",
+            "attrs": {"isNumberColumnEnabled": False, "layout": "wide"},
+            "content": table_rows
+        })
     
     content.append({
             "type": "paragraph",
