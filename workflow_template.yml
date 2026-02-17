@@ -42,8 +42,8 @@ jobs:
 
     - name: Run Robot Tests 🤖
       run: |
-        # Run tests and generate output.xml in results/ folder
-        robot -d results features/ || true 
+        # xvfb-run creates a virtual display for browsers to run in CI
+        xvfb-run robot -d results features/ || true 
         # We allow failure (|| true) so the report step still runs
 
     - name: Generate Report and Sync to Jira 📊
