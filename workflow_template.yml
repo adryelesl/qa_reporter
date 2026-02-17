@@ -101,6 +101,8 @@ jobs:
         JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
         # Dynamic Issue Key from Manual Input or Webhook
         JIRA_ISSUE_KEY: ${{ github.event.inputs.issue_key || github.event.client_payload.issue_key || secrets.JIRA_ISSUE_KEY }}
+        # Tags for Synthetic Skip logic
+        REQUESTED_TAGS: ${{ github.event.inputs.tags || github.event.client_payload.tags }}
       run: |
         echo "Updating Jira Issue: $JIRA_ISSUE_KEY"
         # Run your consumer script

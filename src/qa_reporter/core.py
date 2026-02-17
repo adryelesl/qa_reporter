@@ -451,11 +451,14 @@ def send_email(subject, body, report_dir, results_dir, smtp_config):
     except Exception as e:
         print(f"Failed to send email: {e}")
 
-def run_report(results_dir, history_file='execution_history.json', report_dir='report', smtp_config=None):
+def run_report(results_dir, history_file='execution_history.json', report_dir='report', smtp_config=None, requested_tags=None):
     """
     Main entry point for generating report.
     results_dir: Path to directory containing output.xml and browser results (e.g. 'results')
     """
+    # 🔗 Fallback to environment variable if not provided
+    requested_tags = requested_tags or os.getenv('REQUESTED_TAGS')
+
     output_xml = os.path.join(results_dir, 'output.xml')
     history_path = os.path.join(results_dir, history_file)
     report_path = os.path.join(results_dir, report_dir) # report inside results usually
@@ -464,9 +467,11 @@ def run_report(results_dir, history_file='execution_history.json', report_dir='r
         print(f"Error: '{output_xml}' not found.")
         return
 
-    result = ExecutionResult(output_xml)
     metrics = TestMetrics()
     result.visit(metrics)
+
+    # 🕵️ Synthetic Skip Logic: Apply before evidence and chart
+    metrics.apply_synthetic_skips(requested_tags)
 
     history = load_history(history_path)
     updated_history = manage_evidence(metrics.tests, history, results_dir)

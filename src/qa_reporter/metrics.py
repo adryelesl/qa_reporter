@@ -70,3 +70,41 @@ class TestMetrics(ResultVisitor):
             'duration': elapsed_time,    # Alias for clarity
             'end_time': end_time
         })
+
+    def apply_synthetic_skips(self, requested_tags):
+        """
+        Detects T-IDs requested but not found in execution results and adds them as SKIPPED.
+        """
+        if not requested_tags:
+            return
+
+        import re
+        executed_ids = [t['id'] for t in self.tests]
+        
+        # Resolve major category from tags to assign to the skipped tests
+        major_categories = ['frontend', 'backend', 'api', 'ui', 'e2e']
+        active_cat = 'Uncategorized'
+        for tag in requested_tags.split():
+            if tag.lower() in major_categories:
+                active_cat = tag.lower()
+
+        # Find all Txxx patterns in requested tags
+        requested_ids = re.findall(r'T\d+', requested_tags, re.I)
+        
+        for req_id in requested_ids:
+            if req_id not in executed_ids:
+                # Add to report as skipped
+                self.tests.append({
+                    'id': req_id,
+                    'name': 'Filtered Out / Not Found',
+                    'status': 'SKIP',
+                    'message': f'Test was requested in tags but did not match filter (likely not {active_cat})',
+                    'category': active_cat,
+                    'elapsed_time': 0,
+                    'duration': 0,
+                    'end_time': datetime.now().strftime('%Y%m%d %H:%M:%S.%f'),
+                    'tags': [active_cat, req_id]
+                })
+                self.total += 1
+                self.skipped += 1
+                self.categories.add(active_cat)

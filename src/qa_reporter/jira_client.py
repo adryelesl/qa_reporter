@@ -1,6 +1,7 @@
 import os
 import requests
 import json
+import re
 from datetime import datetime
 from robot.api import ExecutionResult
 from .metrics import TestMetrics
@@ -298,7 +299,7 @@ def upload_evidence_files(jira_config, executed_test_ids, video_dir):
     for file_path in files_to_upload:
         upload_file(jira_config, file_path)
 
-def sync_to_jira(jira_config, results_dir, output_xml_path='output.xml', chart_path='report/summary_chart.png', video_dir='video', custom_field_name='Last Execution'):
+def sync_to_jira(jira_config, results_dir, output_xml_path='output.xml', chart_path='report/summary_chart.png', video_dir='video', custom_field_name='Last Execution', requested_tags=None):
     """
     Main entry point for Jira Sync.
     jira_config: dict with keys 'domain', 'email', 'token', 'issue_key'
@@ -306,12 +307,16 @@ def sync_to_jira(jira_config, results_dir, output_xml_path='output.xml', chart_p
     output_xml_path: relative path to output.xml from results_dir
     chart_path: relative path to chart from results_dir
     video_dir: relative path to video dir from results_dir
+    requested_tags: raw string of tags requested (e.g. from GitHub inputs)
     """
     
     # Construct full paths
     full_output_xml = os.path.join(results_dir, output_xml_path)
     full_chart_path = os.path.join(results_dir, chart_path)
     full_video_dir = os.path.join(results_dir, video_dir)
+    
+    # 🔗 Fallback to environment variable if not provided
+    requested_tags = requested_tags or os.getenv('REQUESTED_TAGS')
 
     if not all(jira_config.values()):
         print("⚠️ Missing Jira Configuration. Skipping Jira Sync.")
@@ -323,9 +328,10 @@ def sync_to_jira(jira_config, results_dir, output_xml_path='output.xml', chart_p
 
     result = ExecutionResult(full_output_xml)
     metrics = TestMetrics()
-    result.visit(metrics)
+    metrics.visit(result)
     
-    executed_ids = [t['id'] for t in metrics.tests]
+    # 🕵️ Synthetic Skip Logic: Use centralized method
+    metrics.apply_synthetic_skips(requested_tags)
     
     try:
         start_time_raw = result.suite.starttime
