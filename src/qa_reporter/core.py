@@ -287,10 +287,10 @@ def generate_html_report_body(metrics, chart_path, history, report_dir):
             table {{ border-collapse: collapse; width: 100%; margin-bottom: 20px; }}
             th, td {{ border: 1px solid #dddddd; text-align: left; padding: 8px; }}
             th {{ background-color: #f2f2f2; }}
-            .pass { color: green; font-weight: bold; }
-            .fail { color: red; font-weight: bold; }
-            .skip { color: #888888; font-weight: bold; }
-            .container-table { border: none; width: 100%; }
+            .pass {{ color: green; font-weight: bold; }}
+            .fail {{ color: red; font-weight: bold; }}
+            .skip {{ color: #888888; font-weight: bold; }}
+            .container-table {{ border: none; width: 100%; }}
             .container-td {{ border: none; vertical-align: top; padding: 10px; }}
             .info-box {{
                 display: inline-block;
