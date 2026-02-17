@@ -287,9 +287,10 @@ def generate_html_report_body(metrics, chart_path, history, report_dir):
             table {{ border-collapse: collapse; width: 100%; margin-bottom: 20px; }}
             th, td {{ border: 1px solid #dddddd; text-align: left; padding: 8px; }}
             th {{ background-color: #f2f2f2; }}
-            .pass {{ color: green; font-weight: bold; }}
-            .fail {{ color: red; font-weight: bold; }}
-            .container-table {{ border: none; width: 100%; }}
+            .pass { color: green; font-weight: bold; }
+            .fail { color: red; font-weight: bold; }
+            .skip { color: #888888; font-weight: bold; }
+            .container-table { border: none; width: 100%; }
             .container-td {{ border: none; vertical-align: top; padding: 10px; }}
             .info-box {{
                 display: inline-block;
@@ -366,15 +367,25 @@ def generate_html_report_body(metrics, chart_path, history, report_dir):
                 </tr>
         """
         for test in tests:
-            status_class = "pass" if test['status'] == 'PASS' else "fail"
+            if test['status'] == 'PASS':
+                status_class = "pass"
+            elif test['status'] == 'SKIP':
+                status_class = "skip"
+            else:
+                status_class = "fail"
+
             details_html = ""
-            if test['status'] == 'FAIL' and test['message']:
-                details_html = f"""
-                <details>
-                    <summary style="cursor: pointer; color: blue;">View Error</summary>
-                    <div style="background-color: #f8f8f8; padding: 5px; border: 1px solid #ddd; font-size: 0.9em; white-space: pre-wrap;">{test['message']}</div>
-                </details>
-                """
+            if test['status'] != 'PASS' and test['message']:
+                # For SKIPS, show fixed text. For FAIL, show collapsible error.
+                if test['status'] == 'SKIP':
+                    details_html = f'<span style="color: #666; font-size: 0.9em;">{test["message"]}</span>'
+                else:
+                    details_html = f"""
+                    <details>
+                        <summary style="cursor: pointer; color: blue;">View Error</summary>
+                        <div style="background-color: #f8f8f8; padding: 5px; border: 1px solid #ddd; font-size: 0.9em; white-space: pre-wrap;">{test['message']}</div>
+                    </details>
+                    """
             
             exec_date = format_date_display(test['end_time'])
             duration_str = format_duration(test['elapsed_time'])

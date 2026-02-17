@@ -169,13 +169,21 @@ def build_adf_content(metrics, duration_str, start_time, chart_url=None):
         ]
         
         for test in tests:
-            status_color = "#006644" if test['status'] == 'PASS' else "#BF2600"
-            status_icon = "PASS" if test['status'] == 'PASS' else "FAIL"
+            # Status styling
+            if test['status'] == 'PASS':
+                status_color = "#006644"
+                status_icon = "PASS"
+            elif test['status'] == 'SKIP':
+                status_color = "#707070" # Gray for skipped
+                status_icon = "SKIP"
+            else:
+                status_color = "#BF2600"
+                status_icon = "FAIL"
             
-            # Details: Show error message if failed, checkmark if passed
-            detail_text = test.get('message', '') if test['status'] == 'FAIL' else "✓"
-            if not detail_text and test['status'] == 'FAIL':
-                 detail_text = "View logs for error details"
+            # Details: Show error message if not passed, checkmark if passed
+            detail_text = test.get('message', '') if test['status'] != 'PASS' else "✓"
+            if not detail_text and test['status'] != 'PASS':
+                 detail_text = "No details provided"
 
             table_rows.append({
                 "type": "tableRow",
