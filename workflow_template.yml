@@ -126,4 +126,4 @@ jobs:
       run: |
         echo "Updating Jira Issue: $JIRA_ISSUE_KEY"
         # Run your consumer script
-        python run_report.py
+        qa-reporter

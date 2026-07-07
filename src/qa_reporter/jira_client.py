@@ -307,6 +307,36 @@ def upload_evidence_files(jira_config, executed_test_ids, video_dir):
     for file_path in files_to_upload:
         upload_file(jira_config, file_path)
 
+def add_jira_comment(jira_config, adf_body, retry_without_media=False):
+    domain = jira_config.get('domain')
+    clean_domain = domain.replace('https://', '').replace('http://', '').split('/')[0].strip()
+    issue_key = jira_config.get('issue_key')
+    email = jira_config.get('email')
+    token = jira_config.get('token')
+    
+    url = f"https://{clean_domain}/rest/api/3/issue/{issue_key}/comment"
+    auth = (email, token)
+    headers = {
+        "Accept": "application/json",
+        "Content-Type": "application/json"
+    }
+    
+    payload = {
+        "body": adf_body
+    }
+    
+    response = requests.post(url, json=payload, auth=auth, headers=headers)
+    
+    if response.status_code == 201:
+        print(f"✅ Successfully added comment to {issue_key}")
+        return True
+    elif response.status_code == 400 and not retry_without_media:
+        print(f"⚠️ 400 Error adding comment. Details: {response.text}")
+        return False
+    else:
+        print(f"⚠️ Failed to add comment: {response.status_code} - {response.text}")
+        return False
+
 def sync_to_jira(jira_config, results_dir, output_xml_path='output.xml', chart_path='report/summary_chart.png', video_dir='video', custom_field_name='Last Execution', requested_tags=None):
     """
     Main entry point for Jira Sync.
@@ -358,19 +388,20 @@ def sync_to_jira(jira_config, results_dir, output_xml_path='output.xml', chart_p
     print(f"🔍 Searching for field ID for '{custom_field_name}'...")
     field_id = get_field_id_by_name(jira_config, custom_field_name)
     
+    duration_str = format_duration(metrics.duration)
+    adf_content = build_adf_content(metrics, duration_str, start_time, chart_url)
+
     if not field_id:
-        print(f"❌ Could not find field with name '{custom_field_name}'. Skipping field update.")
-    else:
-        print(f"✅ Found Field ID: {field_id}")
+        print(f"ℹ️ Could not find field with name '{custom_field_name}'. Overwriting the ticket Description instead...")
+        field_id = "description"
         
-        duration_str = format_duration(metrics.duration)
-        adf_content = build_adf_content(metrics, duration_str, start_time, chart_url)
-        
-        success = update_jira_issue(jira_config, field_id, adf_content)
-        
-        if not success and chart_url:
-            print("🔄 Retrying update without chart link...")
-            adf_content_fallback = build_adf_content(metrics, duration_str, start_time, None)
-            update_jira_issue(jira_config, field_id, adf_content_fallback, retry_without_media=True)
+    print(f"✅ Updating Field ID: {field_id}")
+    
+    success = update_jira_issue(jira_config, field_id, adf_content)
+    
+    if not success and chart_url:
+        print("🔄 Retrying update without chart link...")
+        adf_content_fallback = build_adf_content(metrics, duration_str, start_time, None)
+        update_jira_issue(jira_config, field_id, adf_content_fallback, retry_without_media=True)
     
     upload_evidence_files(jira_config, executed_ids, full_video_dir)

@@ -59,7 +59,6 @@ Create a `.env` file in your project root with the following variables:
 | `DAILY_EXECUTION_TIME` | (Optional) Format HH:MM (24h) | `14:54` |
 
 *If `DAILY_EXECUTION_TIME` is set, the script will loop and wait for that time each day.*
-> **💡 Tip:** You don't have to use both integrations! If you only want to send Emails, simply don't define the `JIRA_DOMAIN` variable. If you only want to update Jira, don't define the `SMTP_SERVER` variable. The tool automatically skips what isn't configured.
 
 ## Usage 📝
 
