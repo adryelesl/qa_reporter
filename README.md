@@ -28,7 +28,8 @@ To install this library in another project **on your computer** without committi
 1. Open your other project's terminal (with venv activated).
 2. Run:
    ```bash
-   pip install -e /Users/adryelesouzaleite/Documents/pj/qa_project
+   pip install git+https://github.com/adryelesl/qa_reporter.git
+
    ```
    *(Replace with the actual path to this folder)*
 

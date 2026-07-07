@@ -4,9 +4,9 @@ setup(
     name="qa_reporter",
     version="0.1.0",
     description="A reusable QA reporting library for Robot Framework results with Jira integration.",
-    author="Adryel Souza Leite",
+    author="@adryelesl",
     package_dir={"": "src"},
-    packages=find_packages(where="src"),
+    packages=["qa_reporter"],
     install_requires=[
         "robotframework",
         "matplotlib",
