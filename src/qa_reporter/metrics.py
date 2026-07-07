@@ -28,22 +28,25 @@ class TestMetrics(ResultVisitor):
         test_id = test.name
         category = 'Uncategorized'
         id_found = False
+        potential_ids = []
         
         if test.tags:
             for tag in test.tags:
                 if tag.lower() in ['frontend', 'backend', 'api', 'ui', 'e2e']:
                     category = tag.lower()
-                elif not id_found and re.match(r'^[A-Za-z]+-?\d+.*', tag):
-                    # Identifica tags como T123, QA-123, qa-1, qa589@a
-                    test_id = tag
-                    id_found = True
+                else:
+                    potential_ids.append(tag)
+                    if not id_found and re.search(r'\d', tag):
+                        # Identifica qualquer tag que tenha um número (QA/123-4, qa589@a, etc)
+                        test_id = tag
+                        id_found = True
         
-        # Fallback se não identificar a tag pelo padrão
-        if test_id == test.name and test.tags:
-            if len(test.tags) >= 2:
-                test_id = test.tags[1]  # Pega a segunda tag
+        # Fallback se não identificar nenhuma tag com número
+        if not id_found and potential_ids:
+            if len(potential_ids) >= 2:
+                test_id = potential_ids[1]  # Pega a segunda tag não-categoria
             else:
-                test_id = test.tags[0]  # Pega a primeira tag se só tiver 1
+                test_id = potential_ids[0]  # Pega a primeira tag
         
         self.categories.add(category)
 
@@ -95,7 +98,7 @@ class TestMetrics(ResultVisitor):
                 active_cat = tag.lower()
 
         # Find all ID patterns in requested tags
-        requested_ids = [t for t in requested_tags.split() if re.match(r'^[A-Za-z]+-?\d+.*', t)]
+        requested_ids = [t for t in requested_tags.split() if re.search(r'\d', t)]
         
         for req_id in requested_ids:
             if req_id not in executed_ids:
