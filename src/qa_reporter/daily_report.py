@@ -1,6 +1,7 @@
 import os
 from dotenv import load_dotenv
 from qa_reporter.core import run_report
+from qa_reporter.jira_client import sync_to_jira
 from qa_reporter.scheduler import wait_until_time
 import time
 
@@ -22,6 +23,18 @@ def main():
     else:
         print("⚠️ SMTP_SERVER not set. Email sending will be skipped.")
 
+    jira_domain = os.getenv('JIRA_DOMAIN')
+    jira_config = None
+    if jira_domain:
+        jira_config = {
+            'domain': jira_domain,
+            'email': os.getenv('JIRA_USER_EMAIL'),
+            'token': os.getenv('JIRA_API_TOKEN'),
+            'issue_key': os.getenv('JIRA_ISSUE_KEY')
+        }
+    else:
+        print("⚠️ JIRA_DOMAIN not set. Jira sync will be skipped.")
+
     schedule_time = os.getenv('DAILY_EXECUTION_TIME')
 
     def execute_job():
@@ -32,6 +45,16 @@ def main():
             report_dir='report',
             smtp_config=smtp_config
         )
+        
+        if jira_config:
+            print("🔗 Syncing to Jira...")
+            sync_to_jira(
+                jira_config=jira_config,
+                results_dir='results',
+                output_xml_path='output.xml',
+                chart_path='report/summary_chart.png',
+                video_dir='video'
+            )
 
     if schedule_time:
         print(f"🕒 Scheduler Active: Will run daily at {schedule_time}")

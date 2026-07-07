@@ -14,4 +14,9 @@ setup(
         "python-dotenv"
     ],
     python_requires=">=3.6",
+    entry_points={
+        "console_scripts": [
+            "qa-reporter=qa_reporter.daily_report:main",
+        ]
+    },
 )

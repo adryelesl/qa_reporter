@@ -51,7 +51,7 @@ Create a `.env` file in your project root with the following variables:
 | `SMTP_USER` | Email User | `qa@company.com` |
 | `SMTP_PASSWORD` | App Password | `xxxx-xxxx-xxxx-xxxx` |
 | `SENDER_EMAIL` | From Address | `qa@company.com` |
-| `RECIPIENT_EMAIL` | To Address | `manager@company.com` |
+| `RECIPIENT_EMAIL` | To Address (comma-separated for multiple) | `manager@company.com, qa@company.com` |
 | `JIRA_DOMAIN` | Jira Cloud URL | `https://company.atlassian.net` |
 | `JIRA_USER_EMAIL` | Jira User Email | `user@company.com` |
 | `JIRA_API_TOKEN` | Jira API Token | `abc123xyz` |
@@ -59,77 +59,29 @@ Create a `.env` file in your project root with the following variables:
 | `DAILY_EXECUTION_TIME` | (Optional) Format HH:MM (24h) | `14:54` |
 
 *If `DAILY_EXECUTION_TIME` is set, the script will loop and wait for that time each day.*
+> **💡 Tip:** You don't have to use both integrations! If you only want to send Emails, simply don't define the `JIRA_DOMAIN` variable. If you only want to update Jira, don't define the `SMTP_SERVER` variable. The tool automatically skips what isn't configured.
 
-## Usage Example 📝
+## Usage 📝
 
-Create a `run_report.py` in your project:
+The library provides a built-in terminal command `qa-reporter` that automatically reads your `.env` file and executes the full reporting and Jira sync workflow. No python scripts are needed!
 
-```python
-import os
-from dotenv import load_dotenv
-from qa_reporter.core import run_report
-from qa_reporter.jira_client import sync_to_jira
-from qa_reporter.scheduler import wait_until_time
-import time
+Simply open your terminal (with your virtual environment activated) and run:
 
-load_dotenv()
+```bash
+# 1. Run your Robot Framework tests first
+robot -d results tests/
 
-def main():
-    # Load Email Config
-    smtp_config = {
-        'server': os.getenv('SMTP_SERVER'),
-        'port': os.getenv('SMTP_PORT', 587),
-        'user': os.getenv('SMTP_USER'),
-        'password': os.getenv('SMTP_PASSWORD'),
-        'sender': os.getenv('SENDER_EMAIL'),
-        'recipient': os.getenv('RECIPIENT_EMAIL')
-    }
-
-    # Load Jira Config
-    jira_config = {
-        'domain': os.getenv('JIRA_DOMAIN'),
-        'email': os.getenv('JIRA_USER_EMAIL'),
-        'token': os.getenv('JIRA_API_TOKEN'),
-        'issue_key': os.getenv('JIRA_ISSUE_KEY')
-    }
-
-    # Define job (Updates Email AND Jira)
-    def job():
-        print("📧 Generating Report & Email...")
-        run_report(
-            results_dir='results',
-            report_dir='report',
-            smtp_config=smtp_config
-        )
-        
-        print("🔗 Syncing to Jira...")
-        sync_to_jira(
-            jira_config=jira_config,
-            results_dir='results',
-            output_xml_path='output.xml',
-            chart_path='report/summary_chart.png',
-            video_dir='video'
-        )
-
-    # Check for Schedule
-    schedule_time = os.getenv('DAILY_EXECUTION_TIME')
-    if schedule_time:
-        print(f"🕒 Scheduled daily for {schedule_time}")
-        while True:
-            if not wait_until_time(schedule_time):
-                print("❌ Invalid Time Format. Exiting.")
-                break
-                
-            job()
-            print("💤 Sleeping for 65s to avoid double trigger...")
-            time.sleep(65)
-    else:
-        print("🚀 Running once (Immediate Mode)...")
-        job()
-
-if __name__ == "__main__":
-    main()
+# 2. Run the QA Reporter
+qa-reporter
 ```
+
+*That's it!* The `qa-reporter` command will:
+1. Generate the HTML report and charts.
+2. Send the email (if SMTP config is provided).
+3. Sync the results to Jira (if Jira config is provided).
+
+### Scheduled Execution (Daily) 🕒
+If you want the report to run automatically every day at a specific time, just add `DAILY_EXECUTION_TIME=14:54` to your `.env` file and run `qa-reporter`. The process will stay open and execute the job every day at the specified time.
 
 ## CI/CD Integration & Scheduling ☁️
 
@@ -144,17 +96,5 @@ To run reports automatically in the cloud, use GitHub Actions.
 ### 2. Local Server (Always On)
 If running on a local machine or server that stays on 24/7:
 *   Set `DAILY_EXECUTION_TIME=14:54` in your `.env`.
-*   Run `python run_report.py` manually once.
+*   Run `qa-reporter` in the terminal.
 *   The script will stay open and execute daily at that time.
-
-
-## Running Tests & Reporting 🏃‍♂️
-
-Usually, you run your tests first, then the report:
-```bash
-# 1. Run Tests
-robot -d results tests/
-
-# 2. Run Report (or keep running for schedule)
-python run_report.py
-```
