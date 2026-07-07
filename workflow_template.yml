@@ -83,7 +83,7 @@ jobs:
             t_lower = t.lower()
             if t_lower in categories:
                 current_cat = t_lower
-            elif re.match(r'^T\d+$', t, re.I):
+            elif re.match(r'^[A-Za-z]+-?\d+.*$', t, re.I):
                 if current_cat:
                     # Use AND keyword, and wrap in quotes for the shell
                     filters.append(f'\\\"{current_cat} AND {t}\\\"')

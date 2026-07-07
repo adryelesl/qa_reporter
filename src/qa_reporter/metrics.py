@@ -1,5 +1,6 @@
 from robot.api import ResultVisitor
 from datetime import datetime
+import re
 
 class TestMetrics(ResultVisitor):
     def __init__(self):
@@ -26,17 +27,23 @@ class TestMetrics(ResultVisitor):
         # Tags logic
         test_id = test.name
         category = 'Uncategorized'
+        id_found = False
         
         if test.tags:
             for tag in test.tags:
-                if tag.startswith('T') and tag[1:].isdigit():
-                    test_id = tag
                 if tag.lower() in ['frontend', 'backend', 'api', 'ui', 'e2e']:
                     category = tag.lower()
+                elif not id_found and re.match(r'^[A-Za-z]+-?\d+.*', tag):
+                    # Identifica tags como T123, QA-123, qa-1, qa589@a
+                    test_id = tag
+                    id_found = True
         
+        # Fallback se não identificar a tag pelo padrão
         if test_id == test.name and test.tags:
-            # Fallback if no Txxx
-             test_id = test.tags[0] 
+            if len(test.tags) >= 2:
+                test_id = test.tags[1]  # Pega a segunda tag
+            else:
+                test_id = test.tags[0]  # Pega a primeira tag se só tiver 1
         
         self.categories.add(category)
 
@@ -73,12 +80,11 @@ class TestMetrics(ResultVisitor):
 
     def apply_synthetic_skips(self, requested_tags):
         """
-        Detects T-IDs requested but not found in execution results and adds them as SKIPPED.
+        Detects IDs requested but not found in execution results and adds them as SKIPPED.
         """
         if not requested_tags:
             return
 
-        import re
         executed_ids = [t['id'] for t in self.tests]
         
         # Resolve major category from tags to assign to the skipped tests
@@ -88,8 +94,8 @@ class TestMetrics(ResultVisitor):
             if tag.lower() in major_categories:
                 active_cat = tag.lower()
 
-        # Find all Txxx patterns in requested tags
-        requested_ids = re.findall(r'T\d+', requested_tags, re.I)
+        # Find all ID patterns in requested tags
+        requested_ids = [t for t in requested_tags.split() if re.match(r'^[A-Za-z]+-?\d+.*', t)]
         
         for req_id in requested_ids:
             if req_id not in executed_ids:
