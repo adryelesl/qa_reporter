@@ -53,7 +53,8 @@ def main():
                 results_dir='results',
                 output_xml_path='output.xml',
                 chart_path='report/summary_chart.png',
-                video_dir='video'
+                video_dir='video',
+                requested_tags=os.getenv('TEST_TAGS')
             )
 
     if schedule_time:
