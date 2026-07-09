@@ -87,7 +87,7 @@ If you want the report to run automatically every day at a specific time, just a
 ### 1. GitHub Actions (Recommended for Teams)
 To run reports automatically in the cloud, use GitHub Actions.
 
-*   **Template:** Copy the file `workflow_template.yml` from this repo to `.github/workflows/daily_report.yml` in your project.
+*   **Template:** Copy the file `github-workflow.example.yml` from this repo to `.github/workflows/daily_report.yml` in your project.
 *   **Scheduling:** The template uses CRON (`cron: '0 11 * * *'`) to run daily at 11:00 UTC.
 *   **Secrets:** Add your `.env` variables to GitHub Secrets.
 *   **⚠️ IMPORTANT:** Do **NOT** add `DAILY_EXECUTION_TIME` to GitHub Secrets. It will cause the action to timeout (loop forever).
@@ -97,3 +97,35 @@ If running on a local machine or server that stays on 24/7:
 *   Set `DAILY_EXECUTION_TIME=14:54` in your `.env`.
 *   Run `qa-reporter` in the terminal.
 *   The script will stay open and execute daily at that time.
+
+### 3. Jira Automation (Trigger pipelines directly from Jira) 🚀
+You can configure Jira to automatically trigger your GitLab/GitHub pipeline whenever you update the `Labels` field on a Jira card. The pipeline will run the tests and return the report to that exact card!
+
+#### Step-by-Step Configuration:
+1. Go to your Jira **Project Settings** (or Space Settings).
+2. Click on **Automation** in the left sidebar.
+3. Click **Create rule** (or Create flow) and choose to start from scratch.
+4. **Trigger:** Choose **Field value changed**.
+   * **Fields to monitor for changes:** Select `Labels`.
+   * **Change type:** Select `Any changes to the field value`.
+5. Click **Next** (or Add component) and select the action **Send web request**.
+   * **Web request URL:** Enter your pipeline trigger URL.
+     * *Example (GitLab):* `https://gitlab.yourcompany.com/api/v4/projects/<PROJECT_ID>/trigger/pipeline`
+     * *Example (GitHub):* `https://api.github.com/repos/<USER>/<REPO>/dispatches`
+   * **HTTP method:** `POST`
+   * **Web request body:** Select `Custom data`
+   * **Custom data payload:** Paste the following JSON example (adjust for GitLab variables or GitHub client_payload):
+     ```json
+     {
+       "token": "YOUR_TRIGGER_TOKEN",
+       "ref": "main",
+       "variables": {
+         "JIRA_ISSUE_KEY": "{{issue.key}}",
+         "TEST_TAGS": "{{issue.labels.join(\" \")}}"
+       }
+     }
+     ```
+6. **Save and enable** the flow.
+
+#### How to execute:
+Simply open any Jira card, click on the **Labels** field, add your test tag (e.g., `CT-123`), and click outside to save. The pipeline will automatically trigger, run the specific test, and attach the report to that exact Jira card!

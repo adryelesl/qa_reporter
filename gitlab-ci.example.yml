@@ -1,0 +1,71 @@
+image: python:3.10
+
+stages:
+  - test
+
+run_qa_tests:
+  stage: test
+  # This job runs when called via API (Jira) or triggered manually via web interface
+  only:
+    - triggers
+    - web
+  
+  # The variables sent by Jira (JIRA_ISSUE_KEY and TEST_TAGS) 
+  # are automatically injected into the environment by GitLab.
+  
+  script:
+    - echo "🚀 Installing dependencies..."
+    - python -m pip install --upgrade pip
+    
+    # 📦 Install the library
+    # OPTION 1: From a private Git repository (Recommended)
+    # - pip install git+https://oauth2:${GITLAB_TOKEN}@gitlab.yourcompany.com/path/qa_reporter.git
+    
+    # OPTION 2: Local code (if this file is inside the qa_reporter project itself)
+    - pip install -e .
+    
+    - if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+    - rfbrowser init || true # Optional: If using Browser Library
+    
+    - echo "🤖 Parsing Tags and Running Tests..."
+    - |
+      # Smart logic to build the Robot Framework command
+      ROBOT_OPTIONS=$(python3 -c "
+      import sys, re
+      raw_tags = '$TEST_TAGS'.strip()
+      if not raw_tags: 
+          print('-d results')
+          sys.exit(0)
+          
+      tags = raw_tags.split()
+      categories = ['frontend', 'backend', 'api', 'ui', 'e2e']
+      current_cat = None
+      filters = []
+      
+      for t in tags:
+          t_lower = t.lower()
+          if t_lower in categories:
+              current_cat = t_lower
+          elif re.search(r'\d', t):
+              if current_cat:
+                  filters.append(f'\"{current_cat} AND {t}\"')
+              else:
+                  filters.append(t)
+          else:
+              filters.append(t)
+      
+      if not filters and current_cat:
+          filters.append(current_cat)
+          
+      opts = ['-d results']
+      opts.extend([f'-i {f}' for f in filters])
+      print(' '.join(opts))
+      ")
+      
+      echo "Running robot with options: $ROBOT_OPTIONS"
+      # The || true ensures the pipeline doesn't break before generating the Jira report!
+      robot $ROBOT_OPTIONS tests/ || true
+      
+    - echo "📊 Generating Report and Syncing to Jira..."
+    # The qa-reporter command automatically fetches $JIRA_ISSUE_KEY and $TEST_TAGS from the environment!
+    - qa-reporter
