@@ -433,8 +433,15 @@ def send_email(subject, body, report_dir, results_dir, smtp_config):
     if os.path.exists(base_video_dir):
         for root, dirs, files in os.walk(base_video_dir):
             for file in files:
-                if file.endswith('.webm') or file.endswith('.html'):
+                if file.endswith('.webm') or file.endswith('.png'):
                     files_to_attach.append(os.path.join(root, file))
+                    
+    # Also attach the main Robot Framework files from results_dir
+    main_files = ['log.html', 'report.html', 'output.xml']
+    for file_name in main_files:
+        file_path = os.path.join(results_dir, file_name)
+        if os.path.exists(file_path):
+            files_to_attach.append(file_path)
 
     for file_path in files_to_attach:
          # Limit attachment size logic could go here
