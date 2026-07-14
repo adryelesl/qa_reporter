@@ -289,7 +289,7 @@ def upload_evidence_files(jira_config, executed_test_ids, video_dir):
     
     for root, dirs, files in os.walk(video_dir):
         for file in files:
-            if file.endswith('.webm') or file.endswith('.html'):
+            if file.endswith('.webm') or file.endswith('.png'):
                 is_relevant = False
                 for t_id in executed_test_ids:
                     if file.startswith(t_id):
@@ -405,3 +405,11 @@ def sync_to_jira(jira_config, results_dir, output_xml_path='output.xml', chart_p
         update_jira_issue(jira_config, field_id, adf_content_fallback, retry_without_media=True)
     
     upload_evidence_files(jira_config, executed_ids, full_video_dir)
+    
+    # Upload main Robot Framework result files
+    main_files = ['log.html', 'report.html', 'output.xml']
+    for file_name in main_files:
+        file_path = os.path.join(results_dir, file_name)
+        if os.path.exists(file_path):
+            print(f"📄 Uploading main file: {file_name}...")
+            upload_file(jira_config, file_path)

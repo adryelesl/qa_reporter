@@ -134,20 +134,8 @@ def manage_evidence(tests, history, results_dir):
             if screenshot_source_path and final_screenshot_path:
                 shutil.copy(screenshot_source_path, final_screenshot_path)
 
-            # Generate individual log using rebot
-            # We assume output.xml is at results_dir/output.xml, user must ensure this structure or pass path
-            output_xml_path = os.path.join(results_dir, 'output.xml')
-             
-            subprocess.run([
-                'rebot',
-                '--log', final_log_path,
-                '--report', 'NONE',
-                '--output', 'NONE',
-                '--test', test['name'],
-                output_xml_path
-            ], check=False, stdout=subprocess.DEVNULL)
-            
-            clean_log_video(final_log_path, final_screenshot_name)
+            # We no longer generate individual logs per test to save space.
+            # The main log.html from results_dir will be attached instead.
 
         updated_history[test_id] = {
             'status': status,
@@ -155,7 +143,7 @@ def manage_evidence(tests, history, results_dir):
             'kept_evidence': should_keep,
             'evidence_paths': {
                 'video': final_video_path if should_keep and video_source_path else None,
-                'log': final_log_path if should_keep else None,
+                'log': None, # Individual logs are disabled
                 'screenshot': final_screenshot_path if should_keep and screenshot_source_path else None
             }
         }
